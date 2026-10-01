@@ -1161,36 +1161,30 @@ async def main():
 
         try:
 
-            while True:
+            print(
+                "\\n"
+                "===================================="
+            )
 
-                print(
-                    "\n"
-                    "===================================="
-                )
+            print(
+                "🔄 NUEVA REVISIÓN"
+            )
 
-                print(
-                    "🔄 NUEVA REVISIÓN"
-                )
+            print(
+                "===================================="
+            )
 
-                print(
-                    "===================================="
-                )
+            await ejecutar_ciclo(
+                browser,
+                estado_fijos,
+                vistos,
+                estado_nuevos
+            )
 
-                await ejecutar_ciclo(
-                    browser,
-                    estado_fijos,
-                    vistos,
-                    estado_nuevos
-                )
-
-                print(
-                    "\n😴 Esperando "
-                    f"{INTERVALO_MINUTOS} minutos..."
-                )
-
-                await asyncio.sleep(
-                    INTERVALO_MINUTOS * 60
-                )
+            print(
+                "\\n✅ Ciclo terminado. "
+                "Cerrando el monitor para esta ejecución."
+            )
 
         finally:
 
