@@ -1,0 +1,51 @@
+name: Monitor Amazon Pokémon
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: amazon-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-dotenv python-telegram-bot playwright
+          playwright install --with-deps chromium
+
+      - name: Ejecutar monitor
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
+        run: |
+          timeout 270s python amazon_monitor.py || true
+
+      - name: Guardar memoria del monitor
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add estado_productos.json productos_nuevos_vistos.json estado_productos_nuevos.json 2>/dev/null || true
+
+          git diff --cached --quiet || git commit -m "Actualizar memoria del monitor"
+
+          git push
