@@ -24,6 +24,10 @@ ARCHIVO_ESTADO_NUEVOS = "estado_productos_nuevos.json"
 
 INTERVALO_MINUTOS = 5
 
+# Pausas conservadoras para reducir solicitudes consecutivas a Amazon.
+PAUSA_ENTRE_BUSQUEDAS = 5
+ESPERAS_REINTENTO = (20, 60)
+
 
 # ============================================================
 # PRODUCTOS FIJOS
@@ -579,7 +583,9 @@ async def buscar_productos(busqueda, browser):
                 "verifica que eres una persona", "validatecaptcha",
             )
             if any(marca in contenido for marca in marcas_bloqueo):
-                raise RuntimeError("Amazon mostró una página de verificación/bloqueo")
+                # No intentar resolver ni eludir el CAPTCHA: parar esta búsqueda.
+                print("🛑 Amazon mostró una verificación. Se detiene esta búsqueda.")
+                return None
 
             tarjetas = page.locator('div[data-component-type="s-search-result"]')
             cantidad = await tarjetas.count()
@@ -628,8 +634,10 @@ async def buscar_productos(busqueda, browser):
 
         except Exception as error:
             print(f"⚠️ Búsqueda fallida (intento {intento}/2): {error}")
-            if intento == 1:
-                await asyncio.sleep(8)
+            if intento < 2:
+                espera = ESPERAS_REINTENTO[intento - 1]
+                print(f"⏳ Esperando {espera} segundos antes del último intento.")
+                await asyncio.sleep(espera)
             else:
                 print(f"❌ No se pudo completar la búsqueda: {busqueda}")
                 return None
@@ -749,6 +757,10 @@ async def ejecutar_ciclo(
         if resultados is None:
             busquedas_completas = False
             continue
+
+        # Espaciar las búsquedas consecutivas para no bombardear el sitio.
+        if busqueda != BUSQUEDAS[-1]:
+            await asyncio.sleep(PAUSA_ENTRE_BUSQUEDAS)
 
         for producto in resultados:
             asin = producto["asin"]
